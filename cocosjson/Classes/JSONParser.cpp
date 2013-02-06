@@ -37,6 +37,11 @@ void JSONParser::onEnter()
 	Parse(file_n);
 }
 
+void JSONParser::onExit()
+{
+	CCLayer::onExit();
+}
+
 CCScene* JSONParser::scene()
 {
 	CCScene* pScene = NULL;
@@ -88,9 +93,17 @@ void JSONParser::Parse(JSONNODE *n)
 			return;
 		}
 
-		if (json_type(*i) == JSON_NODE)
+		if (json_type(*i) == JSON_NODE){
+			//if (pageindex > 0)
+			//{
+			//	this->removeAllChildrenWithCleanup(true);
+			//}
 			pageindex++;
 			PageParse(*i);
+			//CCScene* pScene = new CCScene();
+			//pScene->addChild(this);
+			//CCDirector::sharedDirector()->replaceScene(pScene);
+		}
 		++i;
 	}
 }
@@ -114,13 +127,13 @@ void JSONParser::PageParse(JSONNODE *n_page)
 			wcout<<L"page["<<pageindex<<L"]------"<<L"sound node found"<<endl;
 			output<<L"------page["<<pageindex<<L"]------"<<endl;
 			soundindex = 0;
-			soundParse(*i_page);
+			soundarrayParse(*i_page);
 		}
 		else if (wcscmp(node_name, L"animation") == 0){
 			wcout<<L"page["<<pageindex<<L"]------"<<L"animation node found"<<endl;
 			output<<L"------page["<<pageindex<<L"]------"<<endl;
 			animationindex = 0;
-			animationParse(*i_page);
+			animationarrayParse(*i_page);
 		}
 		else if (wcscmp(node_name, L"length") == 0){
 			wcout<<L"page["<<pageindex<<L"]------"<<L"length node found"<<endl;
@@ -139,6 +152,31 @@ void JSONParser::PageParse(JSONNODE *n_page)
 	}
 }
 
+//------------
+//sound
+//------------
+void JSONParser::soundarrayParse(JSONNODE *n_soundarray)
+{
+	if (n_soundarray == NULL){
+		wcout<<L"Invalid JSON Node from soundarrayparse"<<endl;
+		return;
+	}
+
+	JSONNODE_ITERATOR i_soundarray = json_begin(n_soundarray);
+	while (i_soundarray != json_end(n_soundarray)){
+		if (*i_soundarray == NULL){
+			wcout<<L"Invalid JSON Node from soundarrayparse"<<endl;
+			return;
+		}
+
+		if (json_type(*i_soundarray) == JSON_NODE){
+			soundindex++;
+			soundParse(*i_soundarray);
+		}
+		++i_soundarray;
+	}
+}
+
 void JSONParser::soundParse(JSONNODE *n_sound)
 {
 	if (n_sound == NULL){
@@ -151,11 +189,6 @@ void JSONParser::soundParse(JSONNODE *n_sound)
 		if (*i_sound == NULL){
 			wcout<<L"Invalid JSON Node from soundparse"<<endl;
 			return;
-		}
-
-		if (json_type(*i_sound) == JSON_NODE){
-			soundindex++;
-			soundParse(*i_sound);
 		}
 
 		json_char *node_name = json_name(*i_sound);
@@ -182,6 +215,32 @@ void JSONParser::soundParse(JSONNODE *n_sound)
 	}
 }
 
+//------------
+//animation
+//------------
+void JSONParser::animationarrayParse(JSONNODE *n_animationarray)
+{
+	if (n_animationarray == NULL){
+		wcout<<L"Invalid JSON Node from animationarrayparse"<<endl;
+		return;
+	}
+
+	JSONNODE_ITERATOR i_animationarray = json_begin(n_animationarray);
+	while (i_animationarray != json_end(n_animationarray)){
+		if (*i_animationarray == NULL){
+			wcout<<L"Invalid JSON Node from animationarrayparse"<<endl;
+			return;
+		}
+
+		json_char *node_name = json_name(*i_animationarray);
+		if (json_type(*i_animationarray) == JSON_NODE){
+			animationindex++;
+			animationParse(*i_animationarray);
+		}
+		++i_animationarray;
+	}
+}
+
 void JSONParser::animationParse(JSONNODE *n_animation)
 {
 	if (n_animation == NULL){
@@ -190,18 +249,33 @@ void JSONParser::animationParse(JSONNODE *n_animation)
 	}
 
 	JSONNODE_ITERATOR i_animation = json_begin(n_animation);
+	//CCSprite* pImg;
+	json_char imgfile[FILENAME];
+	encodefilename(imgfile, json_as_string(*(i_animation+8)));
+	char img[FILENAME];
+	wcsTostr(img, imgfile);
+	pImg = CCSprite::create(img);
+	//CCSize size = CCDirector::sharedDirector()->getWinSize();
+	//pImg->setPosition(ccp(size.width / 2, size.height / 2));
+	pImg->setPosition(ccp(json_as_float(*i_animation), json_as_float(*(i_animation+3))));
+	pImg->setScaleX(json_as_float(*(i_animation+10)));
+	pImg->setScaleY(json_as_float(*(i_animation+11)));
+	pImg->_setZOrder(json_as_int(*(i_animation+14)));
+	this->addChild(pImg);
+	//pImg->release();
+	if (json_type(*(i_animation+9)) == JSON_ARRAY)
+		animatearrayParse(*(i_animation+9));
+
+	//------------
+	//for parsing only
+	//------------
 	while (i_animation != json_end(n_animation)){
 		if (*i_animation == NULL){
 			wcout<<L"Invalid JSON Node from animationparse"<<endl;
 			return;
 		}
-
+		
 		json_char *node_name = json_name(*i_animation);
-		if (json_type(*i_animation) == JSON_NODE){
-			animationindex++;
-			animationParse(*i_animation);
-		}
-
 		if (wcscmp(node_name, L"x") == 0)
 			output<<L"["<<animationindex<<L"] "<<L"x: "<<json_as_float(*i_animation)<<endl;
 		else if (wcscmp(node_name, L"length") == 0)
@@ -222,12 +296,8 @@ void JSONParser::animationParse(JSONNODE *n_animation)
 		//------------
 		else if (wcscmp(node_name, L"resouce_type") == 0)
 			output<<L"["<<animationindex<<L"] "<<L"resource_type: "<<json_as_string(*i_animation)<<endl;
-		else if (wcscmp(node_name, L"pic") == 0){
-			json_char imgfile[FILENAME];
-			encodefilename(imgfile, json_as_string(*i_animation));
-			CCSprite* pImg = CCSprite::create(imgfile);
+		else if (wcscmp(node_name, L"pic") == 0)
 			output<<L"["<<animationindex<<L"] "<<L"pic: "<<json_as_string(*i_animation)<<endl;
-		}
 		else if (wcscmp(node_name, L"scalex") == 0)
 			output<<L"["<<animationindex<<L"] "<<L"scalex: "<<json_as_float(*i_animation)<<endl;
 		else if (wcscmp(node_name, L"scaley") == 0)
@@ -245,12 +315,37 @@ void JSONParser::animationParse(JSONNODE *n_animation)
 			output<<L"animate: "<<endl;
 			animateindex = 0;
 			if (json_type(*i_animation) == JSON_ARRAY)
-				animateParse(*i_animation);
+				animatearrayParse(*i_animation);
 			output<<L"\\animate: "<<endl;
 		}
 		json_free(node_name);
 
 		++i_animation;
+	}
+}
+
+//------------
+//animate
+//------------
+void JSONParser::animatearrayParse(JSONNODE *n_animatearray)
+{
+	if (n_animatearray == NULL){
+		wcout<<L"Invalid JSON Node from animatearrayparse"<<endl;
+		return;
+	}
+
+	JSONNODE_ITERATOR i_animatearray = json_begin(n_animatearray);
+	while (i_animatearray != json_end(n_animatearray)){
+		if (*i_animatearray == NULL){
+			wcout<<L"Invalid JSON Node from animatearrayparse"<<endl;
+			return;
+		}
+
+		if (json_type(*i_animatearray) == JSON_NODE){
+			animateindex++;
+			animateParse(*i_animatearray);
+		}
+		++i_animatearray;
 	}
 }
 
@@ -262,15 +357,16 @@ void JSONParser::animateParse(JSONNODE *n_animate)
 	}
 
 	JSONNODE_ITERATOR i_animate = json_begin(n_animate);
+	CCActionInterval* moveaction = CCMoveTo::create(json_as_float(*(i_animate+6)), CCPointMake(json_as_float(*(i_animate)), json_as_float(*(i_animate+2))));
+	pImg->runAction(moveaction);
+
+	//------------
+	//for parsing only
+	//------------
 	while (i_animate != json_end(n_animate)){
 		if (*i_animate == NULL){
 			wcout<<L"Invalid JSON Node from animateparse"<<endl;
 			return;
-		}
-
-		if (json_type(*i_animate) == JSON_NODE){
-			animateindex++;
-			animateParse(*i_animate);
 		}
 
 		json_char *node_name = json_name(*i_animate);
@@ -313,4 +409,16 @@ int JSONParser::sizeoffile(wifstream& jsonfile)
 	jsonfile.seekg(0, ios::beg);
 
 	return filesize;
+}
+
+void JSONParser::wcsTostr(char* chr, json_char* wchr)
+{
+	size_t converted;
+	wcstombs_s(&converted, chr, FILENAME, wchr, _TRUNCATE);
+}
+
+void JSONParser::strTowcs(json_char* wchr, char* chr)
+{
+	size_t converted;
+	mbstowcs_s(&converted, wchr, FILENAME, chr, _TRUNCATE);
 }

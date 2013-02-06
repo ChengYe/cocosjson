@@ -44,6 +44,10 @@ bool AppDelegate::applicationDidFinishLaunching()
 
     // run
     pDirector->runWithScene(pScene);
+
+	pScene->autorelease();
+	pJSONParser->autorelease();
+
     return true;
 }
 
