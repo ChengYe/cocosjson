@@ -3,6 +3,7 @@
 #include "AppDelegate.h"
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
+#include "PageScenetest.h"
 #include "PageScene.h"
 #include "JSONParser.h"
 
@@ -38,15 +39,17 @@ bool AppDelegate::applicationDidFinishLaunching()
     //CCScene *pScene = HelloWorld::scene();
 	//CCScene *pScene = PageScene::scene();
 	//CCScene *pScene = JSONParser::scene();
-	CCScene* pScene = new CCScene();
-	JSONParser *pJSONParser = new JSONParser();
-	pScene->addChild(pJSONParser);
+	PageScene* pScene = new PageScene();
+	//JSONParser *pJSONParser = new JSONParser();
+	//pScene->addChild(pJSONParser);
 
     // run
-    pDirector->runWithScene(pScene);
+    //pDirector->runWithScene(pScene);
 
-	pScene->autorelease();
-	pJSONParser->autorelease();
+	pScene->run();
+
+	//pScene->autorelease();
+	//pJSONParser->autorelease();
 
     return true;
 }

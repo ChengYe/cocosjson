@@ -8,33 +8,6 @@ using namespace std;
 void JSONParser::onEnter()
 {
 	CCLayer::onEnter();
-	do 
-	{
-		CC_BREAK_IF(!CCLayer::init());
-		CCMenuItemImage* pCloseItem = CCMenuItemImage::create(
-			"CloseNormal.png",
-			"CloseSelected.png",
-			this,
-			menu_selector(JSONParser::menuCloseCallback));
-		CC_BREAK_IF(!pCloseItem);
-		pCloseItem->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width - 20, 20));
-		CCMenu* pMenu = CCMenu::create(pCloseItem, NULL);
-		CC_BREAK_IF(!pMenu);
-		pMenu->setPosition(CCPointZero);
-		this->addChild(pMenu, 1);
-	} while (0);
-
-	//read json file
-	wifstream jsonfile("p1.json");
-	if (jsonfile == NULL)
-		cout<<"failed to read json file"<<endl;
-	int filesize = sizeoffile(jsonfile);
-	pJSON = new json_char[filesize+1];
-	jsonfile.read(pJSON, filesize);
-	pJSON[filesize]='\0';
-	//wcout<<pJSON<<endl;
-	file_n = json_parse(pJSON);
-	Parse(file_n);
 }
 
 void JSONParser::onExit()
