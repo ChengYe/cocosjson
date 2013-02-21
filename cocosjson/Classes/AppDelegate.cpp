@@ -3,12 +3,9 @@
 #include "AppDelegate.h"
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
-#include "PageScenetest.h"
 #include "PageScene.h"
-#include "JSONParser.h"
 
 using namespace CocosDenshion;
-
 USING_NS_CC;
 
 AppDelegate::AppDelegate()
@@ -37,19 +34,11 @@ bool AppDelegate::applicationDidFinishLaunching()
 
     // create a scene. it's an autorelease object
     //CCScene *pScene = HelloWorld::scene();
-	//CCScene *pScene = PageScene::scene();
-	//CCScene *pScene = JSONParser::scene();
+
 	PageScene* pScene = new PageScene();
-	//JSONParser *pJSONParser = new JSONParser();
-	//pScene->addChild(pJSONParser);
+	pDirector->runWithScene(pScene);
 
-    // run
-    //pDirector->runWithScene(pScene);
-
-	pScene->run();
-
-	//pScene->autorelease();
-	//pJSONParser->autorelease();
+	pScene->autorelease();
 
     return true;
 }

@@ -1,5 +1,9 @@
-#include "JSONParser.h"
+#include "PageLayer.h"
 #include "PageScene.h"
+
+PageScene::PageScene()
+{
+}
 
 PageScene::~PageScene()
 {
@@ -12,21 +16,25 @@ PageScene::~PageScene()
 void PageScene::onEnter()
 {
 	CCScene::onEnter();
-	//do 
-	//{
-	//	CC_BREAK_IF(!CCScene::init());
-	//	CCMenuItemImage* pCloseItem = CCMenuItemImage::create(
-	//		"CloseNormal.png",
-	//		"CloseSelected.png",
-	//		this,
-	//		menu_selector(JSONParser::menuCloseCallback));
-	//	CC_BREAK_IF(!pCloseItem);
-	//	pCloseItem->setPosition(ccp(CCDirector::sharedDirector()->getWinSize().width - 20, 20));
-	//	CCMenu* pMenu = CCMenu::create(pCloseItem, NULL);
-	//	CC_BREAK_IF(!pMenu);
-	//	pMenu->setPosition(CCPointZero);
-	//	this->addChild(pMenu, 1);
-	//} while (0);
+
+	jsonprep();
+	if (file_n == NULL){
+		wcout<<L"Invalid JSON Node from pagescene::play"<<endl;
+		return;
+	}
+	pageindex = json_begin(file_n);
+	PageLayer* pPL = new PageLayer(*pageindex);
+	addChild(pPL);
+	this->schedule(schedule_selector(PageScene::NextPage), pPL->GetCurPageLen());
+	//CCLog("first page");
+	pPL->autorelease();
+
+	//------------
+	//for testing
+	//------------
+	//this->schedule(schedule_selector(PageScene::NextPage), 3.0f);
+	//schedulecounter = 0;
+
 }
 
 void PageScene::onExit()
@@ -44,51 +52,48 @@ void PageScene::jsonprep()
 	pJSON = new json_char[filesize+1];
 	jsonfile.read(pJSON, filesize);
 	pJSON[filesize]='\0';
-	//wcout<<pJSON<<endl;
 	file_n = json_parse(pJSON);
 }
 
-void PageScene::play(JSONNODE* filenode)
+void PageScene::NextPage(CCTime dt)
 {
-	if (filenode == NULL){
-		wcout<<L"Invalid JSON Node from pagescene::play"<<endl;
-		return;
-	}
+	//------------
+	//for testing
+	//------------
+	//schedulecounter++;
+	//if (schedulecounter < 7)
+	//{
+	//	CCLog("lalalala %d", schedulecounter);
+	//	this->unschedule(schedule_selector(PageScene::NextPage));
+	//	this->schedule(schedule_selector(PageScene::NextPage), 2.0f);
+	//}
+	//else{
+	//	this->unschedule(schedule_selector(PageScene::NextPage));
+	//	CCLog("The end");
+	//}
 
-	JSONNODE_ITERATOR i = json_begin(filenode);
-	while (i != json_end(filenode)){
-		if (*i == NULL){
+	++pageindex;
+	if (pageindex != json_end(file_n))
+	{
+		this->unschedule(schedule_selector(PageScene::NextPage));
+		if (*pageindex == NULL){
 			wcout<<L"Invalid JSON Node from pagescene::play"<<endl;
 			return;
 		}
 
-		if (json_type(*i) == JSON_NODE){
-			CCScene* pS = CCDirector::sharedDirector()->getRunningScene();
-			if (pS != NULL){
-				this->removeAllChildrenWithCleanup(true);
-				JSONParser* pJSONParser = new JSONParser();
-				pJSONParser->PageParse(*i);
-				addChild(pJSONParser);
-				CCDirector::sharedDirector()->replaceScene(this);
-				pJSONParser->autorelease();
-			}
-			else{
-				JSONParser* pJSONParser = new JSONParser();
-				pJSONParser->PageParse(*i);
-				addChild(pJSONParser);
-				CCDirector::sharedDirector()->runWithScene(this);
-				pJSONParser->autorelease();
-			}
+		if (json_type(*pageindex) == JSON_NODE){
+			this->removeAllChildrenWithCleanup(true);
+			PageLayer* pPL = new PageLayer(*pageindex);
+			this->addChild(pPL);
+			this->schedule(schedule_selector(PageScene::NextPage), pPL->GetCurPageLen());
+			//CCLog("second page");
+			pPL->autorelease();
 		}
-		++i;
 	}
-	
-}
-
-void PageScene::run()
-{
-	jsonprep();
-	play(file_n);
+	else{
+		this->unschedule(schedule_selector(PageScene::NextPage));
+		CCLog("The End");
+	}
 }
 
 int PageScene::sizeoffile(wifstream& jsonfile)
